@@ -1,0 +1,16 @@
+PollingSocketServer/Debug/
+PollingSocketServer/Release
+*.ncb
+*.suo
+*.user
+PollingSocketServer/_UpgradeReport_Files/UpgradeReport.css
+PollingSocketServer/_UpgradeReport_Files/UpgradeReport.xslt
+PollingSocketServer/_UpgradeReport_Files/UpgradeReport_Error.png
+PollingSocketServer/_UpgradeReport_Files/UpgradeReport_Information.png
+PollingSocketServer/_UpgradeReport_Files/UpgradeReport_Success.png
+PollingSocketServer/_UpgradeReport_Files/UpgradeReport_Warning.png
+PollingSocketServer/UpgradeLog.htm
+PollingSocketServer/UpgradeLog.XML
+PollingSocketServer/PollingSocketServer.opensdf
+PollingSocketServer/PollingSocketServer.sdf
+PollingSocketServer/PollingSocketServer.vcxproj.filters
