@@ -3,8 +3,6 @@
 #include <algorithm>
 
 #include "Server.h"
-#include "Client.h"
-#include "Packet.h"
 #include "Log.h"
 
 #include <rapidjson/writer.h>
@@ -40,7 +38,7 @@
 	Flush();
 }
 
-/*static*/ void TicTacToeService::OnRecv(Client* client, rapidjson::Document& data)
+/*static*/ void TicTacToeService::OnRecv(PollingSocket* client, rapidjson::Document& data)
 {
 	if (CreateOrEnter(client, data))
 	{
@@ -53,7 +51,7 @@
 	}
 }
 
-/*static*/ void TicTacToeService::RemoveClient(Client* client)
+/*static*/ void TicTacToeService::RemoveClient(PollingSocket* client)
 {
 	for (size_t i = 0 ; i < sServices.size() ; ++i)
 	{
@@ -64,7 +62,7 @@
 	}
 }
 
-/*static*/ bool TicTacToeService::CreateOrEnter(Client* client, rapidjson::Document& data)
+/*static*/ bool TicTacToeService::CreateOrEnter(PollingSocket* client, rapidjson::Document& data)
 {
 	assert(data["type"].IsString());
 	std::string type(data["type"].GetString());
@@ -157,7 +155,7 @@ void TicTacToeService::UpdateInternal()
 }
 
 
-void TicTacToeService::OnRecvInternal(Client* client, rapidjson::Document& data)
+void TicTacToeService::OnRecvInternal(PollingSocket* client, rapidjson::Document& data)
 {
 	switch(mFSM.GetState())
 	{
@@ -174,7 +172,7 @@ void TicTacToeService::OnRecvInternal(Client* client, rapidjson::Document& data)
 }
 
 
-void TicTacToeService::AddClient(Client* client)
+void TicTacToeService::AddClient(PollingSocket* client)
 {
 	assert(mFSM.GetState() == kStateWait);
 	assert(m_Clients.size() < 2);
@@ -194,7 +192,7 @@ void TicTacToeService::AddClient(Client* client)
 }
 
 
-bool TicTacToeService::RemoveClientInternal(Client* client)
+bool TicTacToeService::RemoveClientInternal(PollingSocket* client)
 {
 	ClientList::iterator itor = std::find(m_Clients.begin(), m_Clients.end(), client);
 	if (itor != m_Clients.end())
@@ -227,15 +225,9 @@ void TicTacToeService::CheckPlayerConnection()
 }
 
 
-void TicTacToeService::Send(Client* client, rapidjson::Document& data)
+void TicTacToeService::Send(PollingSocket* client, rapidjson::Document& data)
 {
-	rapidjson::StringBuffer buffer;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-	data.Accept(writer);
-
-	Packet* packet = Packet::Create(client, (const BYTE*)buffer.GetString(), buffer.Size()+1); // includnig null.
-
-	Server::Instance()->PostSend(client, packet);
+	client->AsyncSend(data);
 }
 
 
@@ -281,7 +273,7 @@ void TicTacToeService::OnEnterWait(int nPrevState)
 	mLastMoveCol = 0;
 }
 
-void TicTacToeService::OnUpdateWait(Client* client, rapidjson::Document& data)
+void TicTacToeService::OnUpdateWait(PollingSocket* client, rapidjson::Document& data)
 {
 	if (mPlayer1.client == client)
 	{
@@ -386,7 +378,7 @@ void TicTacToeService::OnEnterPlayer1Turn(int nPrevState)
 	SetPlayerTurn(1);
 }
 
-void TicTacToeService::OnUpdatePlayer1Turn(Client* client, rapidjson::Document& data)
+void TicTacToeService::OnUpdatePlayer1Turn(PollingSocket* client, rapidjson::Document& data)
 {
 	if (mPlayer1.client == client)
 	{
@@ -410,7 +402,7 @@ void TicTacToeService::OnEnterPlayer2Turn(int nPrevState)
 	SetPlayerTurn(2);
 }
 
-void TicTacToeService::OnUpdatePlayer2Turn(Client* client, rapidjson::Document& data)
+void TicTacToeService::OnUpdatePlayer2Turn(PollingSocket* client, rapidjson::Document& data)
 {
 	if (mPlayer2.client == client)
 	{
@@ -577,7 +569,7 @@ void TicTacToeService::OnEnterCheckResult(int nPrevState)
 	mFSM.SetState(lastSymbol == kSymbolOOO ? kStatePlayer2Turn : kStatePlayer1Turn);
 }
 
-void TicTacToeService::OnUpdateCheckResult(Client* client, rapidjson::Document& data) 
+void TicTacToeService::OnUpdateCheckResult(PollingSocket* client, rapidjson::Document& data) 
 {
 }
 
@@ -603,7 +595,7 @@ void TicTacToeService::OnEnterGameCanceled(int nPrevState)
 }
 
 
-void TicTacToeService::OnUpdateGameCanceled(Client* client, rapidjson::Document& data)
+void TicTacToeService::OnUpdateGameCanceled(PollingSocket* client, rapidjson::Document& data)
 {
 }
 

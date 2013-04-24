@@ -5,6 +5,7 @@
 #include "Log.h"
 
 #include "EchoService.h"
+#include "TicTacToeService.h"
 
 Server::Server(void)
 {
@@ -21,6 +22,8 @@ bool Server::Init(unsigned short port)
 	LOG("Server::Init() - port[%d]", port);
 
 	EchoService::Init();
+
+	TicTacToeService::Init();
 
 	PollingSocket::OnAcceptFunc onAccept = boost::bind(&Server::OnAccept, this, _1);
 	PollingSocket::OnCloseFunc onClose = boost::bind(&Server::OnClose, this, _1);
@@ -42,6 +45,8 @@ void Server::Shutdown()
 	}
 	mClientSockets.clear();
 
+	TicTacToeService::Shutdown();
+
 	EchoService::Shutdown();
 }
 
@@ -54,6 +59,8 @@ void Server::Update()
 	{
 		mClientSockets[i]->Poll();
 	}
+
+	TicTacToeService::Update();
 }
 
 
@@ -87,6 +94,8 @@ void Server::OnAccept(PollingSocket* listenSocket)
 void Server::OnRecv(PollingSocket* socket, bool parsingError, rapidjson::Document& data)
 {
 	EchoService::OnRecv(socket, data);
+
+	TicTacToeService::OnRecv(socket, data);
 }
 
 
@@ -95,6 +104,8 @@ void Server::OnClose(PollingSocket* socket)
 	auto itor = std::find(mClientSockets.begin(), mClientSockets.end(), socket);
 	if (itor != mClientSockets.end())
 	{
+		TicTacToeService::RemoveClient(*itor);
+
 		delete *itor;
 		mClientSockets.erase(itor);
 	}

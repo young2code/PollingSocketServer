@@ -80,20 +80,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\utils\FSM.cpp" />
     <ClCompile Include="..\..\utils\Log.cpp" />
     <ClCompile Include="EchoService.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="PollingSocket.cpp" />
     <ClCompile Include="Server.cpp" />
+    <ClCompile Include="TicTacToeService.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\utils\FSM.h" />
     <ClInclude Include="..\..\utils\Log.h" />
     <ClInclude Include="..\..\utils\TSingleton.h" />
     <ClInclude Include="EchoService.h" />
     <ClInclude Include="Network.h" />
     <ClInclude Include="PollingSocket.h" />
     <ClInclude Include="Server.h" />
+    <ClInclude Include="TicTacToeService.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

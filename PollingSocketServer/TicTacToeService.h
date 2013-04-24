@@ -6,7 +6,8 @@
 #include "FSM.h"
 
 
-class Client;
+class PollingSocket;
+
 class TicTacToeService
 {
 public:
@@ -14,12 +15,12 @@ public:
 	static void Shutdown();
 
 	static void Update();
-	static void OnRecv(Client* client, rapidjson::Document& data);
+	static void OnRecv(PollingSocket* client, rapidjson::Document& data);
 
-	static void RemoveClient(Client* client);
+	static void RemoveClient(PollingSocket* client);
 
 private:
-	static bool CreateOrEnter(Client* client, rapidjson::Document& data);
+	static bool CreateOrEnter(PollingSocket* client, rapidjson::Document& data);
 	static void Flush();
 
 private:
@@ -40,7 +41,7 @@ private:
 	{
 		Player() : client(NULL) {}
 
-		Client* client;
+		PollingSocket* client;
 		std::string name;
 	};
 
@@ -62,32 +63,32 @@ private:
 	~TicTacToeService(void);
 
 	void UpdateInternal();
-	void OnRecvInternal(Client* client, rapidjson::Document& data);
+	void OnRecvInternal(PollingSocket* client, rapidjson::Document& data);
 
-	void AddClient(Client* client);
-	bool RemoveClientInternal(Client* client);
+	void AddClient(PollingSocket* client);
+	bool RemoveClientInternal(PollingSocket* client);
 
 	void InitFSM();
 	void ShutdownFSM();
 
 	void OnEnterWait(int nPrevState);
-	void OnUpdateWait(Client* client, rapidjson::Document& data);
+	void OnUpdateWait(PollingSocket* client, rapidjson::Document& data);
 	void OnLeaveWait(int nNextState);
 
 	void OnEnterPlayer1Turn(int nPrevState);
-	void OnUpdatePlayer1Turn(Client* client, rapidjson::Document& data);
+	void OnUpdatePlayer1Turn(PollingSocket* client, rapidjson::Document& data);
 	void OnLeavePlayer1Turn(int nNextState);
 
 	void OnEnterPlayer2Turn(int nPrevState);
-	void OnUpdatePlayer2Turn(Client* client, rapidjson::Document& data);
+	void OnUpdatePlayer2Turn(PollingSocket* client, rapidjson::Document& data);
 	void OnLeavePlayer2Turn(int nNextState);
 
 	void OnEnterCheckResult(int nPrevState);
-	void OnUpdateCheckResult(Client* client, rapidjson::Document& data);
+	void OnUpdateCheckResult(PollingSocket* client, rapidjson::Document& data);
 	void OnLeaveCheckResult(int nNextState);
 
 	void OnEnterGameCanceled(int nPrevState);
-	void OnUpdateGameCanceled(Client* client, rapidjson::Document& data);
+	void OnUpdateGameCanceled(PollingSocket* client, rapidjson::Document& data);
 	void OnLeaveGameCanceled(int nNextState);
 
 	void DummyUpdate() {}
@@ -105,11 +106,11 @@ private:
 	bool CheckBackSlashStraight(Symbol symbol);
 	bool CheckBoardIsFull();
 
-	void Send(Client* client, rapidjson::Document& data);
+	void Send(PollingSocket* client, rapidjson::Document& data);
 	void Broadcast(rapidjson::Document& data);
 
 private:
-	typedef std::vector<Client*> ClientList;
+	typedef std::vector<PollingSocket*> ClientList;
 	ClientList m_Clients;
 
 	FSM mFSM;
