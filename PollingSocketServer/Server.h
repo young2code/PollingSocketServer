@@ -21,7 +21,6 @@ private:
 	void OnAccept(PollingSocket* listenSocket);
 	void OnRecv(PollingSocket* socket, bool parsingError, rapidjson::Document& data);
 	void OnClose(PollingSocket* socket);
-	void OnConnect(PollingSocket* socket); // dummy
 
 private:
 	PollingSocket mListenSocket;

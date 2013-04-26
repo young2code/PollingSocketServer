@@ -290,9 +290,6 @@ void TicTacToeService::OnUpdateWait(PollingSocket* client, rapidjson::Document& 
 
 	if (!mPlayer1.name.empty() && !mPlayer2.name.empty())
 	{
-		const char* data = "{\"type\":\"tictactoe\", \"player1\":\"tictactoe\"}";
-		int size = strlen(data)+1;
-
 		rapidjson::Document playerData;
 		playerData.SetObject();
 		playerData.AddMember("type", "tictactoe", playerData.GetAllocator());

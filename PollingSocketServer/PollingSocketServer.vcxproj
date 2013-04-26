@@ -82,6 +82,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\utils\FSM.cpp" />
     <ClCompile Include="..\..\utils\Log.cpp" />
+    <ClCompile Include="CheckerService.cpp" />
     <ClCompile Include="EchoService.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Network.cpp" />
@@ -93,6 +94,7 @@
     <ClInclude Include="..\..\utils\FSM.h" />
     <ClInclude Include="..\..\utils\Log.h" />
     <ClInclude Include="..\..\utils\TSingleton.h" />
+    <ClInclude Include="CheckerService.h" />
     <ClInclude Include="EchoService.h" />
     <ClInclude Include="Network.h" />
     <ClInclude Include="PollingSocket.h" />
