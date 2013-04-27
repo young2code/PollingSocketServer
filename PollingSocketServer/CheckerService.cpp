@@ -468,13 +468,13 @@ void CheckerService::OnEnterWait(int nPrevState)
 {
 	LOG("CheckerService::OnEnterWait()");
 
-	mPlayer1.Init(Block::WHITE, m_Blocks);
-	mPlayer2.Init(Block::RED, m_Blocks);
-	
 	for (size_t i = 0 ; i < m_Blocks.size() ; ++i)
 	{
 		m_Blocks[i].SetColor(Block::EMPTY);
 	}
+
+	mPlayer1.Init(Block::WHITE, m_Blocks);
+	mPlayer2.Init(Block::RED, m_Blocks);
 }
 
 void CheckerService::OnUpdateWait(PollingSocket* client, rapidjson::Document& data)
@@ -501,10 +501,17 @@ void CheckerService::OnUpdateWait(PollingSocket* client, rapidjson::Document& da
 		playerData.AddMember("player1_name", mPlayer1.GetName().c_str(), playerData.GetAllocator());
 		playerData.AddMember("player2_name", mPlayer2.GetName().c_str(), playerData.GetAllocator());
 
-		playerData.AddMember("assigned_to", 1, playerData.GetAllocator());
+		rapidjson::Value board(rapidjson::kArrayType);
+		for (size_t i = 0 ; i < m_Blocks.size() ; ++i)
+		{
+			board.PushBack(static_cast<int>(m_Blocks[i].GetColor()), playerData.GetAllocator());
+		}
+		playerData.AddMember("board", board, playerData.GetAllocator());
+
+		playerData.AddMember("assigned_to", PLAYER_1, playerData.GetAllocator());
 		Send(mPlayer1.GetClient(), playerData);
 
-		playerData["assigned_to"] = 2;
+		playerData["assigned_to"] = PLAYER_2;
 		Send(mPlayer2.GetClient(), playerData);
 
 		mFSM.SetState(kStatePlayer1Turn);
@@ -519,11 +526,10 @@ void CheckerService::OnLeaveWait(int nNextState)
 
 void CheckerService::SetPlayerTurn(int playerTurn)
 {
+	mPlayer1.UpdatePossibleMoves(m_Blocks);
+	mPlayer2.UpdatePossibleMoves(m_Blocks);
+
 	m_CurrentTurn = playerTurn;
-
-	Player& player = (m_CurrentTurn == PLAYER_1 ? mPlayer1 : mPlayer2);
-
-	player.UpdatePossibleMoves(m_Blocks);
 
 	rapidjson::Document data;
 	data.SetObject();
@@ -550,11 +556,14 @@ void CheckerService::CheckPlayerMove(Player& player, rapidjson::Document& data)
 		{
 			m_LastMove = player.DoMove(moveIndex, m_Blocks);
 
+			mPlayer1.UpdatePossibleMoves(m_Blocks);
+			mPlayer2.UpdatePossibleMoves(m_Blocks);
+
 			rapidjson::Document data;
 			data.SetObject();
 			data.AddMember("type", "checker", data.GetAllocator());
 			data.AddMember("subtype", "move", data.GetAllocator());
-			data.AddMember("player", m_CurrentTurn == PLAYER_1 ? 1 : 2, data.GetAllocator());
+			data.AddMember("player", m_CurrentTurn, data.GetAllocator());
 			data.AddMember("from", m_LastMove.GetFrom(), data.GetAllocator());
 			data.AddMember("to", m_LastMove.GetTo(), data.GetAllocator());
 			data.AddMember("victim", m_LastMove.GetVictim(), data.GetAllocator());
@@ -573,7 +582,7 @@ void CheckerService::CheckPlayerMove(Player& player, rapidjson::Document& data)
 void CheckerService::OnEnterPlayer1Turn(int nPrevState)
 {
 	LOG("CheckerService::OnEnterPlayer1Turn()");
-	SetPlayerTurn(1);
+	SetPlayerTurn(PLAYER_1);
 }
 
 void CheckerService::OnUpdatePlayer1Turn(PollingSocket* client, rapidjson::Document& data)
@@ -597,7 +606,7 @@ void CheckerService::OnLeavePlayer1Turn(int nNextState)
 void CheckerService::OnEnterPlayer2Turn(int nPrevState)
 {
 	LOG("CheckerService::OnEnterPlayer2Turn()");
-	SetPlayerTurn(2);
+	SetPlayerTurn(PLAYER_2);
 }
 
 void CheckerService::OnUpdatePlayer2Turn(PollingSocket* client, rapidjson::Document& data)
@@ -623,18 +632,7 @@ void CheckerService::SetGameEnd(int winner)
 	data.SetObject();
 	data.AddMember("type", "checker", data.GetAllocator());
 	data.AddMember("subtype", "result", data.GetAllocator());
-
-	switch(winner)
-	{
-	case PLAYER_1:		data.AddMember("winner", 1, data.GetAllocator());	break;
-	case PLAYER_2:		data.AddMember("winner", 2, data.GetAllocator());	break;
-	case MAX_PLAYER:	data.AddMember("winner", -1, data.GetAllocator());	break;
-
-	default:
-		assert(0);
-		return;
-	}
-
+	data.AddMember("winner", winner, data.GetAllocator());
 	Broadcast(data);
 
 	mFSM.SetState(kStateWait);
