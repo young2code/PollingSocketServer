@@ -7,6 +7,7 @@
 #include "EchoService.h"
 #include "TicTacToeService.h"
 #include "CheckerService.h"
+#include "SnakeCyclesService.h"
 
 Server::Server(void)
 {
@@ -25,6 +26,7 @@ bool Server::Init(unsigned short port)
 	EchoService::Init();
 	TicTacToeService::Init();
 	CheckerService::Init();
+	SnakeCyclesService::Init();
 
 	PollingSocket::OnAcceptFunc onAccept = boost::bind(&Server::OnAccept, this, _1);
 	PollingSocket::OnCloseFunc onClose = boost::bind(&Server::OnClose, this, _1);
@@ -46,6 +48,7 @@ void Server::Shutdown()
 	}
 	mClientSockets.clear();
 
+	SnakeCyclesService::Shutdown();
 	CheckerService::Shutdown();
 	TicTacToeService::Shutdown();
 	EchoService::Shutdown();
@@ -63,6 +66,7 @@ void Server::Update()
 
 	TicTacToeService::Update();
 	CheckerService::Update();
+	SnakeCyclesService::Update();
 }
 
 
@@ -98,6 +102,7 @@ void Server::OnRecv(PollingSocket* socket, bool parsingError, rapidjson::Documen
 	EchoService::OnRecv(socket, data);
 	TicTacToeService::OnRecv(socket, data);
 	CheckerService::OnRecv(socket, data);
+	SnakeCyclesService::OnRecv(socket, data);
 }
 
 
@@ -108,6 +113,7 @@ void Server::OnClose(PollingSocket* socket)
 	{
 		TicTacToeService::RemoveClient(*itor);
 		CheckerService::RemoveClient(*itor);
+		SnakeCyclesService::RemoveClient(*itor);
 
 		delete *itor;
 		mClientSockets.erase(itor);

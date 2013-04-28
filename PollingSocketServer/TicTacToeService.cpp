@@ -127,7 +127,7 @@ TicTacToeService::~TicTacToeService(void)
 void TicTacToeService::InitFSM()
 {
 #define BIND_CALLBACKS(State) boost::bind(&TicTacToeService::OnEnter##State, this, _1), \
-							  boost::bind(&TicTacToeService::DummyUpdate, this), \
+							  boost::bind(&TicTacToeService::DummyUpdate, this, _1), \
 							  boost::bind(&TicTacToeService::OnLeave##State, this, _1)
 
 	mFSM.RegisterState(kStateWait, BIND_CALLBACKS(Wait));

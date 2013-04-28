@@ -91,7 +91,7 @@ private:
 	void OnUpdateGameCanceled(PollingSocket* client, rapidjson::Document& data);
 	void OnLeaveGameCanceled(int nNextState);
 
-	void DummyUpdate() {}
+	void DummyUpdate(double) {}
 
 	void CheckPlayerConnection();
 

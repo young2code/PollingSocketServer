@@ -88,6 +88,7 @@
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="PollingSocket.cpp" />
     <ClCompile Include="Server.cpp" />
+    <ClCompile Include="SnakeCyclesService.cpp" />
     <ClCompile Include="TicTacToeService.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -99,6 +100,7 @@
     <ClInclude Include="Network.h" />
     <ClInclude Include="PollingSocket.h" />
     <ClInclude Include="Server.h" />
+    <ClInclude Include="SnakeCyclesService.h" />
     <ClInclude Include="TicTacToeService.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

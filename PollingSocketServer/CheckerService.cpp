@@ -341,7 +341,7 @@ CheckerService::~CheckerService(void)
 void CheckerService::InitFSM()
 {
 #define BIND_CALLBACKS(State) boost::bind(&CheckerService::OnEnter##State, this, _1), \
-							  boost::bind(&CheckerService::DummyUpdate, this), \
+							  boost::bind(&CheckerService::DummyUpdate, this, _1), \
 							  boost::bind(&CheckerService::OnLeave##State, this, _1)
 
 	mFSM.RegisterState(kStateWait, BIND_CALLBACKS(Wait));
