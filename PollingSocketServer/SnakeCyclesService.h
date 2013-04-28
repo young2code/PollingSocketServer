@@ -43,29 +43,41 @@ private:
 		kPlayer3,
 		kPlayer4,
 
-		kPlayerMax,
+		kPlayerNone,
 	};
 
-	enum Color
-	{	
-		kRed = 0,	// kPlayer1
-		kBlue,		// kPlayer2
-		kGreen,		// kPlayer3
-		kWhite,		// kPlayer4
-
-		kNone,
+	enum Direction
+	{
+		kUP = 0,
+		kDOWN,
+		kLEFT,
+		kRIGHT,
 	};
 
 	enum
 	{
-		kMinPlayers = 2,
+		kMinPlayers = 1, //2,
 		kMaxPlayers = 4,
 	};
 
 	enum CellCount
 	{
-		kCellRows = 50,
-		kCellColumns = 50,
+		kCellRows = 20,
+		kCellColumns = 20,
+	};
+
+	struct Position
+	{
+		Position() : x(0), y(0) {}
+
+		int x;
+		int y;
+	};
+
+	struct Wall
+	{
+		Position pos;
+		PlayerIndex playerIndex;
 	};
 
 	class Player
@@ -78,9 +90,15 @@ private:
 		};
 
 	public:
-		Player(PollingSocket* client) : mClient(client), mName(), mState(kStateAlive) {}
+		Player(PollingSocket* client);
 
 	public:
+		void Init(PlayerIndex index, PlayerIndex* board, int numRows, int numCols);
+		bool Move(double elapsed, PlayerIndex* board, int numRows, int numCols, Wall& wall);
+		void CheckCollision(const std::vector<Player>& players, PlayerIndex* board, int numRows, int numCols);
+
+		void GetStatus(rapidjson::Value& outData, rapidjson::Document::AllocatorType& allocator) const;
+
 		PollingSocket* GetClient() const { return mClient; }
 
 		void SetName(const char* name) { mName = name; }
@@ -97,9 +115,10 @@ private:
 		std::string mName;
 		State mState;
 		PlayerIndex mIndex;
+		double mTimeRemaing;
+		Direction mDirection;
+		Position mPos;
 	};
-
-
 
 private:
 	SnakeCyclesService(void);
@@ -143,7 +162,9 @@ private:
 	void Broadcast(rapidjson::Document& data) const;
 
 	void SendCountdown() const;
+	void SendPlayerIndex(const Player& player) const;
 	void SendPlay() const;
+	void SendMove(const std::vector<Wall>& newWalls) const;
 	PlayerIndex FindWinner() const;
 	void SendWinner(PlayerIndex winner) const;
 	void SendWait() const;
@@ -152,7 +173,7 @@ private:
 	typedef std::vector<Player> PlayerList;
 	PlayerList mPlayers;
 
-	Color mBoard[kCellRows][kCellColumns];
+	PlayerIndex mBoard[kCellRows*kCellColumns];
 
 	FSM mFSM;
 

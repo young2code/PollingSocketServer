@@ -12,7 +12,143 @@
 namespace
 {
 	const int kInitCountdown = 5;
+	const double kTimePerBlock = 1;
 }
+
+
+SnakeCyclesService::Player::Player(PollingSocket* client) 
+	: mClient(client)
+	, mName()
+	, mState(kStateDead) 
+	, mIndex(kPlayerNone)
+	, mTimeRemaing(kTimePerBlock)
+	, mDirection(kDOWN)
+	, mPos()
+{
+}
+
+void SnakeCyclesService::Player::Init(PlayerIndex index, PlayerIndex* board, int numRows, int numCols)
+{
+	assert(board);
+
+	mState = kStateAlive;
+	mIndex = index;	
+	mTimeRemaing = kTimePerBlock;
+
+	switch(mIndex)
+	{
+	case kPlayer1:	
+		// top
+		mPos.x = numCols/2;
+		mPos.y = numRows-1;
+		mDirection = kDOWN;
+		break;
+
+	case kPlayer2:
+		// right
+		mPos.x = numCols-1;
+		mPos.y = numRows/2;
+		mDirection = kLEFT;
+		break;
+
+	case kPlayer3:
+		// bottom
+		mPos.x = numCols/2;
+		mPos.y = 0;
+		mDirection = kUP;
+		break;
+
+	case kPlayer4:
+		// left
+		mPos.x = 0;
+		mPos.y = numRows/2;
+		mDirection = kRIGHT;
+		break;
+
+	default:
+		assert(0);
+		return;
+	}
+}
+
+bool SnakeCyclesService::Player::Move(double elapsed, PlayerIndex* board, int numRows, int numCols, Wall& wall)
+{
+	if (mState == kStateDead)
+	{
+		return false;
+	}
+
+	mTimeRemaing -= elapsed;
+	if (mTimeRemaing <= 0)
+	{
+		mTimeRemaing = kTimePerBlock;
+
+		wall.pos = mPos;
+		wall.playerIndex = mIndex;
+
+		switch(mDirection)
+		{
+		case kUP:		mPos.y += 1;	break;
+		case kDOWN:		mPos.y -= 1;		break;
+		case kLEFT:		mPos.x += 1;	break;
+		case kRIGHT:	mPos.x -= 1;		break;
+
+		default:
+			assert(0);
+			return false;
+		}
+
+		int index = wall.pos.y * numCols + wall.pos.x;
+		board[index] = mIndex;
+		return true;
+	}
+	return false;
+}
+
+
+void SnakeCyclesService::Player::CheckCollision(const std::vector<Player>& players, PlayerIndex* board, int numRows, int numCols)
+{
+	if (mPos.x < 0 || mPos.y < 0 || mPos.x >= numCols || mPos.y >= numRows)
+	{
+		mState = kStateDead;
+	}
+	else
+	{
+		int curIndex = mPos.y * numCols + mPos.x;
+		if (board[curIndex] != kPlayerNone)
+		{
+			mState = kStateDead;
+		}
+		else
+		{
+			for(size_t i = 0 ; i < players.size() ; ++i)
+			{
+				if (mIndex == players[i].mIndex)
+				{
+					continue;
+				}
+
+				if (mPos.x == players[i].mPos.x && mPos.y == players[i].mPos.y)
+				{
+					mState = kStateDead;
+					break;
+				}
+			}
+		}
+	}
+}
+
+
+void SnakeCyclesService::Player::GetStatus(rapidjson::Value& outData, rapidjson::Document::AllocatorType& allocator) const
+{
+	outData.SetObject();
+	outData.AddMember("index", static_cast<int>(mIndex), allocator);
+	outData.AddMember("x", mPos.x, allocator);
+	outData.AddMember("y", mPos.y, allocator);
+	outData.AddMember("dir", static_cast<int>(mDirection), allocator);
+	outData.AddMember("state", static_cast<int>(mState), allocator);
+}
+
 
 /*static*/ SnakeCyclesService::ServiceList SnakeCyclesService::sServices;
 
@@ -117,7 +253,7 @@ namespace
 SnakeCyclesService::SnakeCyclesService(void)
 	: mCoutdownRemaing(0)
 	, mCountdownSent(0)
-	, mWinner(kPlayerMax)
+	, mWinner(kPlayerNone)
 {
 	InitFSM();
 }
@@ -199,7 +335,7 @@ bool SnakeCyclesService::RemoveClientInternal(PollingSocket* client)
 		if (mWinner == itor->GetIndex())
 		{
 			LOG("SnakeCyclesService::RemoveClientInternal() - winner[%d] left the game.", mWinner);
-			mWinner = kPlayerMax;
+			mWinner = kPlayerNone;
 		}
 		mPlayers.erase(itor);
 		return true;
@@ -249,7 +385,7 @@ void SnakeCyclesService::SetPlayerName(Player& player, rapidjson::Document& data
 void SnakeCyclesService::OnEnterWait(int nPrevState)
 {
 	LOG("SnakeCyclesService::OnEnterWait()");
-	mWinner = kPlayerMax;
+	mWinner = kPlayerNone;
 }
 
 void SnakeCyclesService::OnUpdateWait(double elapsed)
@@ -321,13 +457,69 @@ void SnakeCyclesService::OnLeaveCountdown(int nNextState)
 
 
 // Play
+void SnakeCyclesService::SendPlayerIndex(const Player& player) const
+{
+	rapidjson::Document data;
+	data.SetObject();
+	data.AddMember("type", "snakecycles", data.GetAllocator());
+	data.AddMember("subtype", "playerindex", data.GetAllocator());
+	data.AddMember("playerindex", static_cast<int>(player.GetIndex()), data.GetAllocator());
+
+	Send(player.GetClient(), data);
+}
+
 void SnakeCyclesService::SendPlay() const
 {
 	rapidjson::Document data;
 	data.SetObject();
 	data.AddMember("type", "snakecycles", data.GetAllocator());
 	data.AddMember("subtype", "play", data.GetAllocator());
-	// add game data..
+
+	rapidjson::Value players(rapidjson::kArrayType);
+	for (size_t i = 0 ; i < mPlayers.size() ; ++i)
+	{
+		rapidjson::Value playerStatus(rapidjson::kObjectType);
+		mPlayers[i].GetStatus(playerStatus, data.GetAllocator());
+		players.PushBack(playerStatus, data.GetAllocator());
+	}
+
+	data.AddMember("players", players, data.GetAllocator());
+
+	Broadcast(data);
+}
+
+void SnakeCyclesService::SendMove(const std::vector<Wall>& newWalls) const
+{
+	rapidjson::Document data;
+	data.SetObject();
+	data.AddMember("type", "snakecycles", data.GetAllocator());
+	data.AddMember("subtype", "move", data.GetAllocator());
+
+	// add new wallls
+	rapidjson::Value walls(rapidjson::kArrayType);
+	for (size_t i = 0 ; i < newWalls.size() ; ++i)
+	{			
+		rapidjson::Value wall(rapidjson::kObjectType);
+
+		wall.AddMember("x", newWalls[i].pos.x, data.GetAllocator());
+		wall.AddMember("y", newWalls[i].pos.y, data.GetAllocator());
+		wall.AddMember("playerIndex", static_cast<int>(newWalls[i].playerIndex), data.GetAllocator());
+
+		walls.PushBack(wall, data.GetAllocator());
+	}
+	data.AddMember("walls", walls, data.GetAllocator());
+
+	// update player status
+	rapidjson::Value players(rapidjson::kArrayType);
+
+	for (size_t i = 0 ; i < mPlayers.size() ; ++i)
+	{
+		rapidjson::Value playerStatus(rapidjson::kObjectType);
+		mPlayers[i].GetStatus(playerStatus, data.GetAllocator());
+		players.PushBack(playerStatus, data.GetAllocator());
+	}
+	data.AddMember("players", players, data.GetAllocator());
+
 	Broadcast(data);
 }
 
@@ -335,25 +527,56 @@ void SnakeCyclesService::OnEnterPlay(int nPrevState)
 {
 	LOG("SnakeCyclesService::OnEnterPlay()");
 
-	assert(mWinner == kPlayerMax);
+	assert(mWinner == kPlayerNone);
 
-	for(size_t i = 0 ; i < mPlayers.size() ; ++i)
+	for (size_t i = 0 ; i < kCellRows*kCellColumns ; ++i)
 	{
-		mPlayers[i].SetIndex(static_cast<PlayerIndex>(i));
+		mBoard[i] = kPlayerNone;
 	}
 
+	for (size_t i = 0 ; i < mPlayers.size() ; ++i)
+	{
+		mPlayers[i].Init(static_cast<PlayerIndex>(i), mBoard, kCellRows, kCellColumns);
+	}
 
-	// Init Player pos, dir, velocity and broadcast!
+	// send player index
+	for (size_t i = 0 ; i < mPlayers.size() ; ++i)
+	{
+		SendPlayerIndex(mPlayers[i]);
+	}
 
+	// send play!
 	SendPlay();
 }
 
 void SnakeCyclesService::OnUpdatePlay(double elapsed)
 {
+	std::vector<Wall> newWalls;
+	for (size_t i = 0 ; i < mPlayers.size() ; ++i)
+	{
+		Wall wall;
+		if (mPlayers[i].Move(elapsed, mBoard, kCellColumns, kCellColumns, wall))
+		{
+			newWalls.push_back(wall);
+		}
+	}
+
+	if (!newWalls.empty())
+	{
+		for (size_t i = 0 ; i < mPlayers.size() ; ++i)
+		{
+			mPlayers[i].CheckCollision(mPlayers, mBoard, kCellColumns, kCellColumns);
+		}
+
+		SendMove(newWalls);
+	}
+
+	// Check Game End
 }
 
 void SnakeCyclesService::OnRecvPlay(Player& player, rapidjson::Document& data)
 {
+	// Input handling
 }
 
 void SnakeCyclesService::OnLeavePlay(int nNextState)
@@ -371,7 +594,7 @@ SnakeCyclesService::PlayerIndex SnakeCyclesService::FindWinner() const
 		return itor->GetIndex();
 	}
 
-	return kPlayerMax;
+	return kPlayerNone;
 }
 
 void SnakeCyclesService::SendWinner(PlayerIndex winner) const
@@ -404,7 +627,7 @@ void SnakeCyclesService::OnEnterEnd(int nPrevState)
 void SnakeCyclesService::OnUpdateEnd(double elapsed)
 {
 	// winner is gone.
-	if (mWinner == kPlayerMax)
+	if (mWinner == kPlayerNone)
 	{
 		mFSM.SetState(kStateWait);
 	}
