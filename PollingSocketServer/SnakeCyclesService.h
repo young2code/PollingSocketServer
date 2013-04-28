@@ -110,6 +110,8 @@ private:
 		void SetIndex(PlayerIndex index) { mIndex = index; }
 		PlayerIndex GetIndex() const { return mIndex; }
 
+		void SetDir(Direction dir) { mDirection = dir; }
+
 	private:
 		PollingSocket* mClient;
 		std::string mName;

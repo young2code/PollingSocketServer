@@ -37,7 +37,7 @@ void SnakeCyclesService::Player::Init(PlayerIndex index, PlayerIndex* board, int
 
 	switch(mIndex)
 	{
-	case kPlayer1:	
+	case kPlayer1:
 		// top
 		mPos.x = numCols/2;
 		mPos.y = numRows-1;
@@ -90,8 +90,8 @@ bool SnakeCyclesService::Player::Move(double elapsed, PlayerIndex* board, int nu
 		{
 		case kUP:		mPos.y += 1;	break;
 		case kDOWN:		mPos.y -= 1;		break;
-		case kLEFT:		mPos.x += 1;	break;
-		case kRIGHT:	mPos.x -= 1;		break;
+		case kLEFT:		mPos.x -= 1;		break;
+		case kRIGHT:	mPos.x += 1;	break;
 
 		default:
 			assert(0);
@@ -577,6 +577,20 @@ void SnakeCyclesService::OnUpdatePlay(double elapsed)
 void SnakeCyclesService::OnRecvPlay(Player& player, rapidjson::Document& data)
 {
 	// Input handling
+	assert(data["type"].IsString());
+	std::string type(data["type"].GetString());
+	if (type == "snakecycles")
+	{
+		assert(data["subtype"].IsString());
+		std::string subtype(data["subtype"].GetString());
+		if (subtype == "dir")
+		{
+			assert(data["dir"].IsInt());
+			int dir = data["dir"].GetInt();
+
+			player.SetDir(static_cast<Direction>(dir));
+		}
+	}
 }
 
 void SnakeCyclesService::OnLeavePlay(int nNextState)
@@ -641,9 +655,9 @@ void SnakeCyclesService::OnRecvEnd(Player& player, rapidjson::Document& data)
 		std::string type(data["type"].GetString());
 		if (type == "snakecycles")
 		{
-			assert(data["cmd"].IsString());
-			std::string cmd(data["cmd"].GetString());
-			if (cmd == "restart")
+			assert(data["subtype"].IsString());
+			std::string subtype(data["subtype"].GetString());
+			if (subtype == "restart")
 			{
 				mFSM.SetState(kStateWait);
 			}
